@@ -786,6 +786,7 @@ function renderDownloadSingleExample(label, value) {
 }
 function renderDownloadOperation(path, method, op) {
   var summary = op.summary||path;
+  var isEvent = !!op['x-event'];
   var restFolder = REST_ARTIFACTS[summary]||null;
   var ct = op.requestBody && op.requestBody.content ? op.requestBody.content['application/json'] : null;
   var resKey = op.responses ? Object.keys(op.responses)[0] : null;
@@ -793,14 +794,14 @@ function renderDownloadOperation(path, method, op) {
   var rct = res && res.content ? res.content['application/json'] : null;
   var html = '<section class="download-operation">';
   html += '<h3>'+escHtml(summary)+'</h3>';
-  html += '<div class="download-meta"><span>'+escHtml(String(method||'').toUpperCase())+'</span><code>'+escHtml(path)+'</code></div>';
+  if (!isEvent) html += '<div class="download-meta"><span>'+escHtml(String(method||'').toUpperCase())+'</span><code>'+escHtml(path)+'</code></div>';
   if (op.description) html += '<div class="md-content">'+md(op.description)+'</div>';
   if (ct) {
     html += '<h4>MQTT request</h4>';
     html += renderDownloadExamples(ct.examples||{});
     if (ct.schema) html += '<h4>MQTT request schema</h4>'+schemaTable(ct.schema);
   }
-  if (rct) {
+  if (rct && !isEvent) {
     html += '<h4>MQTT response</h4>';
     html += renderDownloadExamples(rct.examples||{});
     if (rct.schema) html += '<h4>MQTT response schema</h4>'+schemaTable(rct.schema);
@@ -951,6 +952,7 @@ function renderOperation(path, method, op) {
   var summary = op.summary||path;
   var id = opIdFromPath(path);
   var desc = op.description||'';
+  var isEvent = !!op['x-event'];
   var restFolder = REST_ARTIFACTS[summary]||null;
 
   var restReqExamplesData = restFolder ? getRestArtifact(restFolder,'request_examples') : undefined;
@@ -1028,25 +1030,25 @@ function renderOperation(path, method, op) {
   }
 
   var resHtml = '';
-  if (op.responses) {
+  if (op.responses && !isEvent) {
     var resKey = Object.keys(op.responses)[0];
     var res = op.responses[resKey];
     if (res && res.content && res.content['application/json']) {
       var rct = res.content['application/json'];
       var resExObj = rct.examples||{};
       var resExKeys = Object.keys(resExObj);
-      var resSchemaHtml = rct.schema ? schemaTable(rct.schema) : '';
+      var resSchemaHtml = (rct.schema && !isEvent) ? schemaTable(rct.schema) : '';
       var resExampleJson = '';
       if (resExKeys.length && resExObj[resExKeys[0]].value) {
         resExampleJson = JSON.stringify(resExObj[resExKeys[0]].value,null,2);
       }
       resHtml = '<div class="payload-section">';
-      resHtml += '<div class="payload-heading">Response Payload</div>';
+      resHtml += '<div class="payload-heading">'+(isEvent?'Event Payload':'Response Payload')+'</div>';
       var hasResContent = resExKeys.length||resSchemaHtml||restResExampleJson||restResExampleEmpty||restResSchemaHtml;
       if (hasResContent) {
         resHtml += '<div class="tab-bar">';
-        if (resExKeys.length) resHtml += '<button class="tab-btn active" data-tab="res-ex-'+id+'">MQTT Example</button>';
-        if (resSchemaHtml) resHtml += '<button class="tab-btn'+(resExKeys.length?'':' active')+'" data-tab="res-sc-'+id+'">MQTT Schema</button>';
+        if (resExKeys.length) resHtml += '<button class="tab-btn active" data-tab="res-ex-'+id+'">'+(isEvent?'Event Example':'MQTT Example')+'</button>';
+        if (resSchemaHtml) resHtml += '<button class="tab-btn'+(resExKeys.length?'':' active')+'" data-tab="res-sc-'+id+'">'+(isEvent?'Event Schema':'MQTT Schema')+'</button>';
         if (restResExampleJson||restResExampleEmpty) resHtml += '<button class="tab-btn" data-tab="res-rest-ex-'+id+'">REST Example</button>';
         if (restResSchemaHtml) resHtml += '<button class="tab-btn" data-tab="res-rest-sc-'+id+'">REST Schema</button>';
         resHtml += '</div>';
